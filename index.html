@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Stoner RPG: A Hazy Adventure</title>
+<style>
+  /* ---------- page chrome ---------- */
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: linear-gradient(180deg, #1a1a2e 0%, #0f1428 100%);
+    color: #eee;
+    font-family: 'Courier New', monospace;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 16px;
+    user-select: none;
+  }
+  h1 {
+    margin: 0 0 12px;
+    color: #8aff8a;
+    text-shadow: 0 0 8px #4a4, 0 0 16px #4a4;
+    letter-spacing: 2px;
+    font-size: 22px;
+  }
+
+  /* ---------- HUD ---------- */
+  #hud {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    background: #0d0d1a;
+    border: 2px solid #4a4;
+    border-bottom: none;
+    padding: 8px 12px;
+    width: 640px;
+    border-radius: 6px 6px 0 0;
+  }
+  .stat {
+    font-size: 13px;
+    padding: 4px 10px;
+    background: #1a1a2e;
+    border-radius: 4px;
+    border: 1px solid #333;
+    min-width: 90px;
+    text-align: center;
+  }
+  .stat b { color: #fff; }
+  .cash b   { color: #5aff7a; }
+  .weed b   { color: #b0ffb0; }
+  .vibes b  { color: #faff5a; }
+  .busts b  { color: #ff7070; }
+  .high b   { color: #fa70ff; }
+
+  /* ---------- game window ---------- */
+  #gameWrap {
+    position: relative;
+    width: 640px;
+    height: 480px;
+    border: 2px solid #4a4;
+    box-shadow: 0 0 30px rgba(70,180,70,0.25);
+    overflow: hidden;
+  }
+  canvas {
+    display: block;
+    background: #2a2a3a;
+    transition: filter 0.15s linear;
+  }
+
+  /* ---------- overlays ---------- */
+  .overlay {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    background: rgba(0,0,0,0.85);
+    color: #fff;
+    text-align: center;
+    z-index: 5;
+    padding: 30px;
+  }
+  .overlay.active { display: flex; }
+  .overlay h2 { margin: 0 0 12px; font-size: 26px; letter-spacing: 1px; }
+  .overlay p  { margin: 6px 0; font-size: 14px; line-height: 1.5; }
+  .overlay button {
+    margin-top: 18px;
+    background: #4a4;
+    color: #0d0d1a;
+    border: none;
+    padding: 12px 24px;
+    font-size: 15px;
+    font-family: inherit;
+    cursor: pointer;
+    border-radius: 4px;
+    font-weight: bold;
+    letter-spacing: 1px;
+  }
+  .overlay button:hover { background: #6f6; }
+  #gameOver h2 { color: #ff7070; text-shadow: 0 0 10px #f55; }
+  #winScreen h2 { color: #faff5a; text-shadow: 0 0 10px #ff5; }
+
+  /* ---------- instructions ---------- */
+  #instructions {
+    margin-top: 12px;
+    font-size: 12px;
+    color: #aaa;
+    text-align: center;
+    max-width: 640px;
+    line-height: 1.7;
+  }
+  #instructions b { color: #8aff8a; }
+  .legend {
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+    margin-top: 8px;
+    flex-wrap: wrap;
+    font-size: 11px;
+  }
+  .legend span { display: flex; align-items: center; gap: 4px; }
+  .swatch {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1px solid #000;
+  }
+</style>
+</head>
+<body>
+<h1>STONER RPG: A HAZY ADVENTURE</h1>
+
+<div id="hud">
+  <div class="stat cash">Cash: <b id="cash">$50</b></div>
+  <div class="stat weed">Weed: <b id="weed">0g</b></div>
+  <div class="stat vibes">Vibes: <b id="vibes">0</b>/100</div>
+  <div class="stat busts">Busts: <b id="busts">0</b>/3</div>
+  <div class="stat high">High: <b id="high">0</b></div>
+</div>
+
+<div id="gameWrap">
+  <canvas id="game" width="640" height="480"></canvas>
+  <div id="gameOver" class="overlay">
+    <h2>GAME OVER, MAN</h2>
+    <p>You got busted three times. Your mom is grounding you.</p>
+    <p>Final Vibes: <b id="finalVibes">0</b> / 100</p>
+    <button onclick="restart()">Play Again</button>
+  </div>
+  <div id="winScreen" class="overlay">
+    <h2>YOU'RE ENLIGHTENED, MAN</h2>
+    <p>You hit 100 Vibes and reached pure cosmic chill.</p>
+    <p>You see colors that don't exist.</p>
+    <button onclick="restart()">Play Again</button>
+  </div>
+</div>
+
+<div id="instructions">
+  <b>Move:</b> WASD / Arrows &nbsp;&nbsp; <b>Run:</b> Shift &nbsp;&nbsp; <b>Interact:</b> E &nbsp;&nbsp; <b>Smoke:</b> S<br>
+  Buy weed from dealers, sneak to hiding spots, smoke to gain Vibes. Reach 100 Vibes to win. 3 busts = game over.
+  <div class="legend">
+    <span><i class="swatch" style="background:#8aff8a"></i>You</span>
+    <span><i class="swatch" style="background:#3a6aff"></i>Cop</span>
+    <span><i class="swatch" style="background:#888"></i>Sketchy</span>
+    <span><i class="swatch" style="background:#c4823a"></i>Reliable</span>
+    <span><i class="swatch" style="background:#a85aff"></i>Premium</span>
+    <span><i class="swatch" style="background:#5aff7a"></i>Cash $</span>
+  </div>
+</div>
+
+<script>
+/* ====================================================================
+   STONER RPG  —  single-file browser game
+   ----------------------------------------------------------------
+   SECTIONS:
+     1. Constants & world layout
+     2. State & init
+     3. Input handling
+     4. Game loop  (update + render)
+     5. Player movement & collision
+     6. Cops (patrol + vision-cone detection)
+     7. Dealers & buying
+     8. Cash pickups
+     9. Hiding spots & smoking
+    10. Popups & HUD
+    11. Overlays (game over / win) & restart
+    12. Rendering helpers
+   ==================================================================== */
+
+
+/* ---------- 1. CONSTANTS & WORLD LAYOUT ---------- */
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const W = canvas.width;     // 640
+const H = canvas.height;    // 480
+const TILE = 32;
+const COLS = 20;
+const ROWS = 15;
+
+// Color palette (single source of truth — tweak here to recolor the game)
+const C = {
+  street: '#2a2a38',
+  streetLine: '#33333f',
+  building: '#4a3a3a',
+  buildingTop: '#6a4a4a',
+  home: '#2f5a2f',
+  homeTop: '#5aff8a',
+  hide: '#33335a',
+  hideTop: '#7a7adf',
+  player: '#8aff8a',
+  playerOutline: '#0a3a0a',
+  cop: '#3a6aff',
+  copDark: '#1a3aaf',
+  copAlert: '#ff5070',
+  visionCone: 'rgba(80,140,255,0.16)',
+  visionConeAlert: 'rgba(255,80,80,0.30)',
+};
+
+// Player's home (safe zone — cops can never see you here)
+const HOME = { x: 16, y: 16, w: 96, h: 64, name: 'HOME' };
+
+// Buildings are solid rectangles (block movement)
+const BUILDINGS = [
+  { x: 160, y: 96,  w: 96, h: 96 },   // top-left
+  { x: 384, y: 96,  w: 96, h: 96 },   // top-right
+  { x: 160, y: 288, w: 96, h: 96 },   // mid-left
+  { x: 384, y: 288, w: 96, h: 96 },   // mid-right
+];
+
+// Hiding spots (overlapping these = safe from cops unless smoking)
+const HIDING_SPOTS = [
+  { name: 'ALLEY',      x: 272, y: 128, w: 24, h: 64 },
+  { name: 'PARK BENCH', x: 32,  y: 176, w: 56, h: 32 },
+  { name: 'ROOFTOP',    x: 288, y: 416, w: 56, h: 40 },
+];
+
+// Stationary dealer NPCs.  `sketchy` = 10% chance of sting-bust per purchase.
+// `vibes` = vibes added to score when this gram is smoked.
+const DEALER_DEFS = [
+  { id: 1, name: 'Sketchy Steve',  x: 576, y: 80,  price: 15, vibes: 15, sketchy: true,  color: '#888888', label: '$15 sketchy' },
+  { id: 2, name: 'Reliable Ron',   x: 64,  y: 416, price: 25, vibes: 25,                  color: '#c4823a', label: '$25 reliable' },
+  { id: 3, name: 'Premium Pete',   x: 576, y: 416, price: 40, vibes: 50, premium: true,   color: '#a85aff', label: '$40 premium 2x' },
+];
+
+// Cops patrol fixed paths (back-and-forth between waypoints).
+//   speed     = px/sec
+//   vision    = cone radius (px)
+//   halfAngle = half-width of cone in radians (~0.45 ≈ 26°)
+const COP_DEFS = [
+  { speed: 60, vision: 110, halfAngle: 0.50,
+    path: [{ x: 80,  y: 232 }, { x: 600, y: 232 }] },
+  { speed: 55, vision: 110, halfAngle: 0.50,
+    path: [{ x: 80,  y: 432 }, { x: 600, y: 432 }] },
+  { speed: 70, vision: 100, halfAngle: 0.45,
+    path: [{ x: 336, y: 96  }, { x: 336, y: 416 }] },
+];
+
+// Cash pickups scattered around (need these to afford enough weed to win)
+const CASH_PICKUP_DEFS = [
+  { x: 304, y: 64,  value: 20 },
+  { x: 600, y: 264, value: 20 },
+  { x: 320, y: 376, value: 20 },
+];
+
+// Player tuning
+const PLAYER_RADIUS  = 11;
+const WALK_SPEED     = 110;
+const RUN_SPEED      = 180;
+const SMOKE_DURATION = 3.0;    // seconds to finish smoking one gram
+const HIGH_DECAY     = 6;      // points/sec
+const HIGH_PER_PUFF  = 35;
+
+// Bust thresholds
+const COP_CLOSE_RADIUS = 110;  // cops only bust weed-carriers within this radius (and inside cone)
+const RUN_VISION_BOOST = 1.4;  // running stretches cop vision range
+
+
+/* ---------- 2. STATE & INIT ---------- */
+
+let state;     // global game state — replaced wholesale by initState()
+
+function initState() {
+  state = {
+    player: {
+      x: HOME.x + HOME.w / 2,
+      y: HOME.y + HOME.h / 2,
+      r: PLAYER_RADIUS,
+      smoking: false,
+      smokeT: 0,
+    },
+    cash: 50,
+    weed: [],                  // array of pending vibes values (one per gram)
+    vibes: 0,
+    busts: 0,
+    high: 0,
+    cops: COP_DEFS.map(c => ({
+      ...c,
+      path: c.path.map(p => ({ ...p })),
+      x: c.path[0].x,
+      y: c.path[0].y,
+      pathIndex: 1,
+      facing: 0,
+      alertT: 0,
+    })),
+    cashPickups: CASH_PICKUP_DEFS.map(p => ({ ...p, collected: false })),
+    popups: [],
+    mode: 'playing',           // 'playing' | 'dealerMenu' | 'gameOver' | 'win'
+    dealerMenu: null,
+    invuln: 0,                 // brief invuln after bust so we don't double-trigger
+    flashT: 0,                 // red screen flash timer on bust
+    time: 0,
+  };
+  hideOverlays();
+  updateHUD();
+}
+
+
+/* ---------- 3. INPUT HANDLING ---------- */
+
+const keys = {};         // currently-held
+const justPressed = {};  // pressed this frame (consumed by `consumeKey`)
+
+window.addEventListener('keydown', e => {
+  // Multi-char key names ("ArrowUp", "Shift", "Escape") are preserved;
+  // single chars are lowercased so we ignore Shift state.
+  const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  if (!keys[k]) justPressed[k] = true;
+  keys[k] = true;
+  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
+});
+window.addEventListener('keyup', e => {
+  const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  keys[k] = false;
+});
+
+// Returns true exactly once per physical key press
+function consumeKey(k) {
+  if (justPressed[k]) { delete justPressed[k]; return true; }
+  return false;
+}
+
+
+/* ---------- 4. GAME LOOP ---------- */
+
+let lastT = 0;
+
+function loop(t) {
+  const dt = Math.min(0.033, (t - lastT) / 1000); // cap dt so tab-switches don't teleport stuff
+  lastT = t;
+  update(dt);
+  render();
+  // clear "just-pressed" snapshot so next frame is fresh
+  for (const k in justPressed) delete justPressed[k];
+  requestAnimationFrame(loop);
+}
+
+// All gameplay logic happens here. Render only reads from state.
+function update(dt) {
+  if (state.mode === 'gameOver' || state.mode === 'win') return;
+  state.time += dt;
+  state.flashT = Math.max(0, state.flashT - dt);
+
+  // --- dealer menu pauses gameplay ---
+  if (state.mode === 'dealerMenu') {
+    if (consumeKey('1')) attemptBuy(state.dealerMenu);
+    if (consumeKey('Escape') || consumeKey('e')) closeDealerMenu();
+    return;
+  }
+
+  // --- smoke trigger (separate from movement so it fires once per press) ---
+  if (consumeKey('s')) tryStartSmoking();
+
+  // --- player movement OR smoking ---
+  if (state.player.smoking) {
+    state.player.smokeT += dt;
+    if (state.player.smokeT >= SMOKE_DURATION) finishSmoking();
+  } else {
+    let dx = 0, dy = 0;
+    if (keys['w'] || keys['ArrowUp'])    dy -= 1;
+    if (keys['s'] || keys['ArrowDown'])  dy += 1;
+    if (keys['a'] || keys['ArrowLeft'])  dx -= 1;
+    if (keys['d'] || keys['ArrowRight']) dx += 1;
+    if (dx && dy) { dx *= 0.7071; dy *= 0.7071; }  // normalize diagonal
+    const speed = keys['Shift'] ? RUN_SPEED : WALK_SPEED;
+    tryMove(state.player, dx * speed * dt, dy * speed * dt);
+
+    // dealer interaction
+    if (consumeKey('e')) {
+      const d = nearbyDealer();
+      if (d) openDealerMenu(d);
+    }
+  }
+
+  // --- world systems ---
+  for (const cop of state.cops) updateCop(cop, dt);
+  collectCashPickups();
+  if (state.invuln > 0) state.invuln -= dt;
+  else                  checkDetection();
+
+  // --- high meter decay ---
+  if (state.high > 0) state.high = Math.max(0, state.high - HIGH_DECAY * dt);
+
+  // --- popups float up and fade out ---
+  for (const p of state.popups) { p.life -= dt; p.y -= 25 * dt; }
+  state.popups = state.popups.filter(p => p.life > 0);
+
+  // --- win check ---
+  if (state.vibes >= 100 && state.mode === 'playing') triggerWin();
+
+  updateHUD();
+  applyHighEffect();
+}
+
+// CSS-filter wobble/blur/hue-shift while high — cheap and effective
+function applyHighEffect() {
+  if (state.high > 50) {
+    const k = (state.high - 50) / 50;
+    canvas.style.filter = `blur(${k * 1.2}px) hue-rotate(${state.high * 2.2}deg) saturate(${1 + k * 0.6})`;
+  } else {
+    canvas.style.filter = 'none';
+  }
+}
+
+
+/* ---------- 5. PLAYER MOVEMENT & COLLISION ---------- */
+
+// Try to move by (dx,dy), applying axes separately so we slide along walls.
+function tryMove(p, dx, dy) {
+  const nx = p.x + dx;
+  if (!blocked(nx, p.y, p.r)) p.x = nx;
+  const ny = p.y + dy;
+  if (!blocked(p.x, ny, p.r)) p.y = ny;
+  // clamp to world bounds
+  p.x = Math.max(p.r, Math.min(W - p.r, p.x));
+  p.y = Math.max(p.r, Math.min(H - p.r, p.y));
+}
+
+function blocked(x, y, r) {
+  for (const b of BUILDINGS) if (circleRect(x, y, r, b)) return true;
+  return false;
+}
+
+// Circle-vs-axis-aligned-rect overlap test
+function circleRect(cx, cy, cr, r) {
+  const closestX = Math.max(r.x, Math.min(cx, r.x + r.w));
+  const closestY = Math.max(r.y, Math.min(cy, r.y + r.h));
+  const dx = cx - closestX, dy = cy - closestY;
+  return dx * dx + dy * dy < cr * cr;
+}
+
+
+/* ---------- 6. COPS ---------- */
+
+function updateCop(cop, dt) {
+  // Walk straight toward the next waypoint; advance index on arrival
+  const target = cop.path[cop.pathIndex];
+  const dx = target.x - cop.x;
+  const dy = target.y - cop.y;
+  const dist = Math.hypot(dx, dy);
+  if (dist < 2) {
+    cop.pathIndex = (cop.pathIndex + 1) % cop.path.length;
+  } else {
+    cop.facing = Math.atan2(dy, dx);
+    cop.x += (dx / dist) * cop.speed * dt;
+    cop.y += (dy / dist) * cop.speed * dt;
+  }
+  cop.alertT = Math.max(0, cop.alertT - dt);
+}
+
+// Is point (px,py) inside this cop's vision cone?  Vision range can be stretched.
+function inVisionCone(cop, px, py, rangeMult = 1) {
+  const dx = px - cop.x, dy = py - cop.y;
+  const dist = Math.hypot(dx, dy);
+  if (dist > cop.vision * rangeMult) return false;
+  if (dist < 6) return true;   // standing on the cop counts
+  const ang = Math.atan2(dy, dx);
+  let diff = ang - cop.facing;
+  while (diff > Math.PI)  diff -= 2 * Math.PI;
+  while (diff < -Math.PI) diff += 2 * Math.PI;
+  return Math.abs(diff) < cop.halfAngle;
+}
+
+// The core bust check, run every frame.
+function checkDetection() {
+  // HOME and hiding spots make you invisible — unless you're actively smoking
+  if (inHome()) return;
+  if (currentHidingSpot() && !state.player.smoking) return;
+
+  const rangeMult = keys['Shift'] ? RUN_VISION_BOOST : 1;
+  for (const cop of state.cops) {
+    if (!inVisionCone(cop, state.player.x, state.player.y, rangeMult)) continue;
+
+    // Smoking in plain sight is always a bust
+    if (state.player.smoking) { triggerBust('Caught mid-puff!'); return; }
+
+    // Holding weed + close enough = searched and busted
+    const dist = Math.hypot(cop.x - state.player.x, cop.y - state.player.y);
+    if (state.weed.length > 0 && dist < COP_CLOSE_RADIUS) {
+      triggerBust('Searched and found!'); return;
+    }
+
+    // Otherwise: cop is suspicious but no bust
+    cop.alertT = 0.6;
+  }
+}
+
+function triggerBust(reason) {
+  state.busts++;
+  state.cash = Math.max(0, state.cash - 20);
+  state.weed = [];
+  state.player.smoking = false;
+  state.player.smokeT = 0;
+  state.player.x = HOME.x + HOME.w / 2;
+  state.player.y = HOME.y + HOME.h / 2;
+  state.invuln = 2.0;
+  state.flashT = 0.5;
+  addPopup('BUSTED!', state.player.x, state.player.y - 32, '#ff5050', 2.2);
+  if (reason) addPopup(reason, state.player.x, state.player.y - 8, '#ffb0b0', 2.0);
+  if (state.busts >= 3) triggerGameOver();
+}
+
+function inHome() {
+  return circleRect(state.player.x, state.player.y, state.player.r, HOME);
+}
+
+
+/* ---------- 7. DEALERS & BUYING ---------- */
+
+function nearbyDealer() {
+  for (const d of DEALER_DEFS) {
+    if (Math.hypot(d.x - state.player.x, d.y - state.player.y) < 34) return d;
+  }
+  return null;
+}
+
+function openDealerMenu(d)  { state.mode = 'dealerMenu'; state.dealerMenu = d; }
+function closeDealerMenu()  { state.mode = 'playing';    state.dealerMenu = null; }
+
+function attemptBuy(d) {
+  if (state.cash < d.price) {
+    addPopup('Not enough cash!', state.player.x, state.player.y - 30, '#ff8080', 1.5);
+    closeDealerMenu();
+    return;
+  }
+  // 10% sting chance for the sketchy dealer
+  if (d.sketchy && Math.random() < 0.10) {
+    addPopup('STING OPERATION!', state.player.x, state.player.y - 50, '#ff5050', 2);
+    closeDealerMenu();
+    triggerBust('Undercover cop!');
+    return;
+  }
+  state.cash -= d.price;
+  state.weed.push(d.vibes);
+  addPopup('Nice nug!', state.player.x, state.player.y - 30, '#8aff8a', 1.4);
+  closeDealerMenu();
+}
+
+
+/* ---------- 8. CASH PICKUPS ---------- */
+
+function collectCashPickups() {
+  for (const cp of state.cashPickups) {
+    if (cp.collected) continue;
+    if (Math.hypot(cp.x - state.player.x, cp.y - state.player.y) < state.player.r + 6) {
+      cp.collected = true;
+      state.cash += cp.value;
+      addPopup(`+$${cp.value}!`, state.player.x, state.player.y - 30, '#5aff7a', 1.3);
+    }
+  }
+}
+
+
+/* ---------- 9. HIDING SPOTS & SMOKING ---------- */
+
+function currentHidingSpot() {
+  for (const s of HIDING_SPOTS) {
+    if (circleRect(state.player.x, state.player.y, state.player.r, s)) return s;
+  }
+  return null;
+}
+
+function tryStartSmoking() {
+  if (state.player.smoking) return;
+  if (state.weed.length === 0) {
+    addPopup('No weed, dude!', state.player.x, state.player.y - 30, '#ffb060', 1.2);
+    return;
+  }
+  if (!currentHidingSpot()) {
+    addPopup('Find a hiding spot!', state.player.x, state.player.y - 30, '#ffb060', 1.4);
+    return;
+  }
+  state.player.smoking = true;
+  state.player.smokeT = 0;
+  addPopup('Smoking...', state.player.x, state.player.y - 30, '#dddddd', 1.0);
+}
+
+function finishSmoking() {
+  const vibes = state.weed.pop() || 0;
+  state.vibes = Math.min(100, state.vibes + vibes);
+  state.high = Math.min(100, state.high + HIGH_PER_PUFF);
+  state.player.smoking = false;
+  state.player.smokeT = 0;
+  addPopup(`+${vibes} Vibes`, state.player.x, state.player.y - 30, '#faff5a', 1.6);
+  if (state.high >= 80) addPopup('Whoaaaa...', state.player.x, state.player.y - 52, '#fa70ff', 1.4);
+}
+
+
+/* ---------- 10. POPUPS & HUD ---------- */
+
+function addPopup(text, x, y, color, life) {
+  state.popups.push({ text, x, y, color: color || '#fff', life: life || 1.2, max: life || 1.2 });
+}
+
+function updateHUD() {
+  document.getElementById('cash').textContent  = '$' + state.cash;
+  document.getElementById('weed').textContent  = state.weed.length + 'g';
+  document.getElementById('vibes').textContent = Math.floor(state.vibes);
+  document.getElementById('busts').textContent = state.busts;
+  document.getElementById('high').textContent  = Math.floor(state.high);
+}
+
+
+/* ---------- 11. OVERLAYS / RESTART ---------- */
+
+function hideOverlays() {
+  document.getElementById('gameOver').classList.remove('active');
+  document.getElementById('winScreen').classList.remove('active');
+}
+function triggerGameOver() {
+  state.mode = 'gameOver';
+  document.getElementById('finalVibes').textContent = Math.floor(state.vibes);
+  document.getElementById('gameOver').classList.add('active');
+}
+function triggerWin() {
+  state.mode = 'win';
+  document.getElementById('winScreen').classList.add('active');
+}
+function restart() {
+  initState();
+}
+
+
+/* ---------- 12. RENDERING ---------- */
+
+function render() {
+  // background streets + faint grid
+  ctx.fillStyle = C.street;
+  ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = C.streetLine;
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= COLS; i++) { ctx.beginPath(); ctx.moveTo(i*TILE+0.5, 0); ctx.lineTo(i*TILE+0.5, H); ctx.stroke(); }
+  for (let j = 0; j <= ROWS; j++) { ctx.beginPath(); ctx.moveTo(0, j*TILE+0.5); ctx.lineTo(W, j*TILE+0.5); ctx.stroke(); }
+
+  // zones
+  drawZone(HOME, C.home, C.homeTop, HOME.name);
+  for (const s of HIDING_SPOTS) drawZone(s, C.hide, C.hideTop, s.name);
+
+  // buildings
+  for (const b of BUILDINGS) {
+    ctx.fillStyle = C.building;
+    ctx.fillRect(b.x, b.y, b.w, b.h);
+    ctx.fillStyle = C.buildingTop;
+    ctx.fillRect(b.x, b.y, b.w, 5);
+    ctx.strokeStyle = '#1a1a2a';
+    ctx.strokeRect(b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1);
+    // windows for flavor
+    ctx.fillStyle = '#1a1a2a';
+    for (let wx = b.x + 14; wx + 10 < b.x + b.w; wx += 24) {
+      for (let wy = b.y + 16; wy + 10 < b.y + b.h; wy += 26) {
+        ctx.fillRect(wx, wy, 10, 12);
+      }
+    }
+  }
+
+  // cash pickups (below entities)
+  for (const cp of state.cashPickups) {
+    if (cp.collected) continue;
+    const bob = Math.sin(state.time * 4 + cp.x) * 2;
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.beginPath(); ctx.ellipse(cp.x, cp.y + 8, 8, 3, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#5aff7a';
+    ctx.beginPath(); ctx.arc(cp.x, cp.y + bob, 9, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#0a3a0a'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = '#0a3a0a';
+    ctx.font = 'bold 11px Courier New';
+    ctx.textAlign = 'center';
+    ctx.fillText('$', cp.x, cp.y + bob + 4);
+  }
+
+  // cop vision cones (drawn below cop bodies and players so they tint underneath)
+  for (const cop of state.cops) drawVisionCone(cop);
+
+  // dealers
+  for (const d of DEALER_DEFS) drawDealer(d);
+
+  // player
+  drawPlayer();
+
+  // cops on top so they're always visible
+  for (const cop of state.cops) drawCop(cop);
+
+  // smoking progress bar above player
+  if (state.player.smoking) drawSmokeBar();
+
+  // floating popup text
+  for (const p of state.popups) {
+    const alpha = Math.min(1, p.life / 0.4);
+    ctx.font = 'bold 13px Courier New';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = `rgba(0,0,0,${alpha*0.6})`;
+    ctx.fillText(p.text, p.x + 1, p.y + 1);
+    ctx.fillStyle = p.color;
+    ctx.globalAlpha = alpha;
+    ctx.fillText(p.text, p.x, p.y);
+    ctx.globalAlpha = 1;
+  }
+
+  // red flash on bust
+  if (state.flashT > 0) {
+    ctx.fillStyle = `rgba(255,40,40,${state.flashT})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // dealer menu (drawn last so it sits on top)
+  if (state.mode === 'dealerMenu' && state.dealerMenu) drawDealerMenu();
+
+  // small contextual prompt at bottom of screen
+  if (state.mode === 'playing' && !state.player.smoking) {
+    const d = nearbyDealer();
+    if (d) drawPrompt(`Press E to talk to ${d.name}`);
+    else if (currentHidingSpot() && state.weed.length > 0) drawPrompt(`Press S to smoke (${state.weed.length}g)`);
+    else if (currentHidingSpot()) drawPrompt('Hiding spot — need weed to smoke');
+  }
+}
+
+function drawZone(z, fill, top, label) {
+  ctx.fillStyle = fill;
+  ctx.fillRect(z.x, z.y, z.w, z.h);
+  ctx.fillStyle = top;
+  ctx.fillRect(z.x, z.y, z.w, 4);
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.font = 'bold 9px Courier New';
+  ctx.textAlign = 'center';
+  ctx.fillText(label, z.x + z.w / 2, z.y + z.h / 2 + 4);
+}
+
+function drawPlayer() {
+  const p = state.player;
+  // shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.beginPath(); ctx.ellipse(p.x, p.y + 8, p.r, 4, 0, 0, Math.PI*2); ctx.fill();
+  // body — blink while invulnerable after bust
+  ctx.fillStyle = (state.invuln > 0 && Math.floor(state.time * 10) % 2) ? '#aaffaa' : C.player;
+  ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = C.playerOutline; ctx.lineWidth = 2; ctx.stroke();
+  // dot eyes
+  ctx.fillStyle = '#0a3a0a';
+  ctx.fillRect(p.x - 4, p.y - 3, 2, 2);
+  ctx.fillRect(p.x + 2, p.y - 3, 2, 2);
+
+  // smoke puffs while smoking
+  if (p.smoking) {
+    for (let i = 0; i < 5; i++) {
+      const off = ((p.smokeT * 0.6) + i * 0.22) % 1;
+      ctx.fillStyle = `rgba(220,220,230,${0.55 * (1 - off)})`;
+      ctx.beginPath();
+      ctx.arc(p.x + Math.sin(p.smokeT * 4 + i) * 4, p.y - 16 - off * 28, 4 + off * 4, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+}
+
+function drawDealer(d) {
+  // shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.beginPath(); ctx.ellipse(d.x, d.y + 8, 11, 4, 0, 0, Math.PI*2); ctx.fill();
+  // body
+  ctx.fillStyle = d.color;
+  ctx.beginPath(); ctx.arc(d.x, d.y, 11, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.stroke();
+  // beanie/hat hint
+  ctx.fillStyle = '#000';
+  ctx.fillRect(d.x - 7, d.y - 12, 14, 3);
+
+  // labels
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 9px Courier New';
+  ctx.textAlign = 'center';
+  ctx.fillText(d.name, d.x, d.y + 24);
+  ctx.fillStyle = '#bbc';
+  ctx.fillText(d.label, d.x, d.y + 34);
+
+  // highlight ring when player is in range
+  const inRange = Math.hypot(d.x - state.player.x, d.y - state.player.y) < 34;
+  if (inRange && state.mode === 'playing') {
+    ctx.strokeStyle = '#8aff8a';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.arc(d.x, d.y, 22, 0, Math.PI*2); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+
+function drawCop(cop) {
+  const alert = cop.alertT > 0;
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.beginPath(); ctx.ellipse(cop.x, cop.y + 8, 11, 4, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = alert ? C.copAlert : C.cop;
+  ctx.beginPath(); ctx.arc(cop.x, cop.y, 11, 0, Math.PI*2); ctx.fill();
+  // hat
+  ctx.fillStyle = C.copDark;
+  ctx.fillRect(cop.x - 9, cop.y - 13, 18, 5);
+  ctx.fillStyle = '#ffd700';
+  ctx.fillRect(cop.x - 1, cop.y - 11, 2, 2);   // badge
+  ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(cop.x, cop.y, 11, 0, Math.PI*2); ctx.stroke();
+  // facing direction marker (where their eyes look)
+  const fx = cop.x + Math.cos(cop.facing) * 7;
+  const fy = cop.y + Math.sin(cop.facing) * 7;
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(fx, fy, 2.5, 0, Math.PI*2); ctx.fill();
+  if (alert) {
+    ctx.fillStyle = '#ff3030';
+    ctx.font = 'bold 16px Courier New';
+    ctx.textAlign = 'center';
+    ctx.fillText('!', cop.x, cop.y - 16);
+  }
+}
+
+function drawVisionCone(cop) {
+  const alert = cop.alertT > 0;
+  ctx.fillStyle = alert ? C.visionConeAlert : C.visionCone;
+  ctx.beginPath();
+  ctx.moveTo(cop.x, cop.y);
+  const a1 = cop.facing - cop.halfAngle;
+  const a2 = cop.facing + cop.halfAngle;
+  ctx.lineTo(cop.x + Math.cos(a1) * cop.vision, cop.y + Math.sin(a1) * cop.vision);
+  ctx.arc(cop.x, cop.y, cop.vision, a1, a2);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawSmokeBar() {
+  const p = state.player;
+  const w = 40, h = 6;
+  const x = p.x - w/2, y = p.y - 30;
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillRect(x - 1, y - 1, w + 2, h + 2);
+  ctx.fillStyle = '#333';
+  ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = '#8aff8a';
+  ctx.fillRect(x, y, w * (p.smokeT / SMOKE_DURATION), h);
+}
+
+function drawPrompt(text) {
+  ctx.font = 'bold 12px Courier New';
+  const tw = ctx.measureText(text).width + 24;
+  const x = W/2 - tw/2, y = H - 32;
+  ctx.fillStyle = 'rgba(0,0,0,0.78)';
+  ctx.fillRect(x, y, tw, 22);
+  ctx.strokeStyle = '#4a4';
+  ctx.strokeRect(x + 0.5, y + 0.5, tw - 1, 21);
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'center';
+  ctx.fillText(text, W/2, y + 15);
+}
+
+function drawDealerMenu() {
+  const d = state.dealerMenu;
+  const mx = W/2 - 160, my = H/2 - 80;
+  ctx.fillStyle = 'rgba(0,0,0,0.88)';
+  ctx.fillRect(mx, my, 320, 160);
+  ctx.strokeStyle = '#8aff8a';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(mx + 0.5, my + 0.5, 319, 159);
+
+  ctx.fillStyle = d.color;
+  ctx.beginPath(); ctx.arc(mx + 32, my + 32, 12, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5; ctx.stroke();
+
+  ctx.fillStyle = '#8aff8a';
+  ctx.font = 'bold 16px Courier New';
+  ctx.textAlign = 'left';
+  ctx.fillText(d.name, mx + 54, my + 28);
+  ctx.fillStyle = '#bbc';
+  ctx.font = '11px Courier New';
+  ctx.fillText(d.label, mx + 54, my + 44);
+
+  ctx.fillStyle = '#fff';
+  ctx.font = '13px Courier New';
+  ctx.textAlign = 'center';
+  ctx.fillText(`Cash: $${state.cash}`, W/2, my + 80);
+  ctx.fillStyle = state.cash >= d.price ? '#8aff8a' : '#777';
+  ctx.fillText(`[1] Buy 1g for $${d.price}  (+${d.vibes} vibes)`, W/2, my + 108);
+  ctx.fillStyle = '#fff';
+  ctx.fillText('[Esc / E] Leave', W/2, my + 132);
+}
+
+
+/* ---------- BOOT ---------- */
+
+initState();
+requestAnimationFrame(t => { lastT = t; requestAnimationFrame(loop); });
+</script>
+</body>
+</html>
