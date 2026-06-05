@@ -268,6 +268,25 @@
     color: #faff5a !important;
   }
   .stat-line b { color: #fff; }
+  .end-stats {
+    margin: 18px 0 22px;
+    background: rgba(20,28,46,0.7);
+    border: 1px solid #4a4;
+    border-radius: 4px;
+    padding: 12px 18px;
+    min-width: 280px;
+  }
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: #a8c4a8;
+    padding: 4px 0;
+    border-bottom: 1px dashed rgba(70,180,70,0.18);
+  }
+  .stat-row:last-child { border-bottom: none; }
+  .stat-row b { color: #faff5a; font-size: 14px; letter-spacing: 1px; }
 
   /* Footer */
   #footer {
@@ -328,15 +347,16 @@
       <h1 class="game-title">STONER<br>RPG</h1>
       <p class="game-subtitle">— A HAZY ADVENTURE —</p>
       <p class="game-intro">
-        Woke up with $50 and a craving. Score weed from the dealers,<br>
-        sneak to a hiding spot to toke up, dodge the cops.<br>
-        Hit <b style="color:#faff5a">100 Vibes</b> to ascend. <b style="color:#ff7070">3 busts</b> ends it.
+        Woke up with $50 and a craving. Score weed from three notorious dealers —<br>
+        <b style="color:#e8d050">Trump</b>, <b style="color:#fff">Elon</b>, and <b style="color:#ffd700">Snoop</b> — sneak to a hiding spot, light up.<br>
+        Hit <b style="color:#faff5a">100 Vibes</b> to ascend. <b style="color:#ff7070">3 busts</b> and it's over.
       </p>
       <div class="controls-grid">
         <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> Move</div>
         <div><kbd>Shift</kbd> Run</div>
         <div><kbd>E</kbd> Interact</div>
         <div><kbd>S</kbd> Smoke</div>
+        <div><kbd>P</kbd> Pause</div>
       </div>
       <button id="startBtn" class="big-btn">LET'S GO</button>
     </div>
@@ -345,7 +365,12 @@
     <div id="gameOver" class="overlay">
       <h2 class="result-title">BUSTED FOR GOOD</h2>
       <p>Three strikes, you're done.<br>Your mom is FURIOUS.</p>
-      <p class="stat-line">Final Vibes: <b id="finalVibes">0</b> / 100</p>
+      <div class="end-stats">
+        <div class="stat-row"><span>Final Vibes</span><b><span id="finalVibes">0</span> / 100</b></div>
+        <div class="stat-row"><span>Grams smoked</span><b id="finalSmoked">0</b></div>
+        <div class="stat-row"><span>Bonus cash grabbed</span><b id="finalCash">$0</b></div>
+        <div class="stat-row"><span>Time on the streets</span><b id="finalTime">0:00</b></div>
+      </div>
       <button class="big-btn" id="retryBtn">TRY AGAIN</button>
     </div>
 
@@ -354,13 +379,18 @@
       <h2 class="result-title win-title">ENLIGHTENED</h2>
       <p>You hit 100 Vibes and reached cosmic chill.<br>
       You can taste sound. You can hear color.</p>
-      <p class="stat-line">FINAL SCORE: <b>100</b> / 100</p>
+      <div class="end-stats">
+        <div class="stat-row"><span>Final Vibes</span><b>100 / 100</b></div>
+        <div class="stat-row"><span>Grams smoked</span><b id="winSmoked">0</b></div>
+        <div class="stat-row"><span>Bonus cash grabbed</span><b id="winCash">$0</b></div>
+        <div class="stat-row"><span>Time to ascend</span><b id="winTime">0:00</b></div>
+      </div>
       <button class="big-btn" id="playAgainBtn">PLAY AGAIN</button>
     </div>
   </div>
 
   <div id="footer">
-    <b>WASD / Arrows</b> move &nbsp;·&nbsp; <b>Shift</b> run &nbsp;·&nbsp; <b>E</b> talk to dealer &nbsp;·&nbsp; <b>S</b> smoke
+    <b>WASD / Arrows</b> move &nbsp;·&nbsp; <b>Shift</b> run &nbsp;·&nbsp; <b>E</b> talk &nbsp;·&nbsp; <b>S</b> smoke &nbsp;·&nbsp; <b>P</b> pause
   </div>
 
 </div>
@@ -462,11 +492,41 @@ const HIDING_SPOTS = [
   { name: 'SHED',       x: 600, y: 200, w: 72, h: 56, kind: 'shed'  },
 ];
 
-// Dealers
+// Dealers — three caricatured personalities (clearly satirical lookalikes)
 const DEALER_DEFS = [
-  { id: 1, name: 'Sketchy Steve',  x: 656, y: 128, price: 15, vibes: 15, sketchy: true,  color: '#9a9a9a', accent: '#000000', label: '$15  sketchy' },
-  { id: 2, name: 'Reliable Ron',   x: 80,  y: 416, price: 25, vibes: 25,                  color: '#c47a3a', accent: '#643818', label: '$25  reliable' },
-  { id: 3, name: 'Premium Pete',   x: 656, y: 416, price: 40, vibes: 50, premium: true,   color: '#a85aff', accent: '#5a2a8a', label: '$40  premium 2x' },
+  {
+    id: 1, name: 'Donald J. Trump', x: 656, y: 128,
+    price: 15, vibes: 15, sketchy: true,
+    color: '#1a2a4a', accent: '#c83030', label: '$15  TREMENDOUS',
+    lines: [
+      'Tremendous weed, believe me!',
+      'Nobody grows kush like me. Nobody.',
+      'The best buds. Beautiful buds. Yuge.',
+      'It\'s gonna be a deal so good.',
+    ],
+  },
+  {
+    id: 2, name: 'Elon Musk', x: 80, y: 416,
+    price: 25, vibes: 25,
+    color: '#1a1a1a', accent: '#ff4040', label: '$25  X-grade',
+    lines: [
+      'This kush is on Mars, technically.',
+      'Inspired by Doge. Tokenized.',
+      'Funding secured. Buy it now.',
+      'I\'m literally rebranding it to X.',
+    ],
+  },
+  {
+    id: 3, name: 'Snoop Dogg', x: 656, y: 416,
+    price: 40, vibes: 50, premium: true,
+    color: '#2050b0', accent: '#ffd700', label: '$40  fo shizzle',
+    lines: [
+      'Fo shizzle, my nizzle.',
+      'Drop it like its hot, dawg.',
+      'This here is the smooothest, fam.',
+      'Doggystyle premium, baby.',
+    ],
+  },
 ];
 
 // Cop patrols
@@ -553,9 +613,21 @@ function initState() {
     flashT: 0,
     shakeT: 0,
     shakeMag: 0,
+    edgePulseT: 0,             // red border pulse when a cop is hot on you
     time: 0,
     soundOn: true,
-    started: false,         // gameplay starts after title screen
+    started: false,            // gameplay starts after title screen
+    paused: false,
+    dealerLine: null,          // { id, text }   — current speech bubble
+    lastNearbyDealerId: null,
+    milestones: { 25: false, 50: false, 75: false },
+    stats: {
+      gramsBought: 0,
+      gramsSmoked: 0,
+      cashPicked: 0,
+      timeStart: 0,
+      timeEnd: 0,
+    },
   };
   hideOverlays();
   updateHUD();
@@ -597,6 +669,39 @@ const SFX = {
   gameover: () => { [523, 392, 329, 261, 196, 165].forEach((f, i) => setTimeout(() => tone(f, 0.25, 'sawtooth', 0.07), i * 130)); },
   step:     () => tone(120 + Math.random()*40, 0.02, 'square', 0.025),
   nope:     () => { tone(180, 0.08, 'square', 0.06); setTimeout(() => tone(140, 0.10, 'square', 0.06), 80); },
+  // joint lighting: two metallic flicks of the lighter wheel, an ignition click,
+  // then a brief flame whoosh + crackle.
+  light:    () => {
+    if (!audioCtx || !state.soundOn) return;
+    tone(880, 0.020, 'square',  0.07);                      // flick 1
+    setTimeout(() => tone(920, 0.020, 'square', 0.07), 70);  // flick 2
+    setTimeout(() => tone(1100, 0.030, 'square', 0.05), 145);// ignition click
+    setTimeout(() => {                                       // flame whoosh
+      if (!audioCtx || !state.soundOn) return;
+      const osc = audioCtx.createOscillator();
+      const g   = audioCtx.createGain();
+      osc.type  = 'sawtooth';
+      osc.frequency.setValueAtTime(260, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(70, audioCtx.currentTime + 0.45);
+      g.gain.setValueAtTime(0.045, audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.0008, audioCtx.currentTime + 0.45);
+      osc.connect(g); g.connect(audioCtx.destination);
+      osc.start(); osc.stop(audioCtx.currentTime + 0.45);
+
+      // crackle on top
+      const cr = audioCtx.createOscillator();
+      const cg = audioCtx.createGain();
+      cr.type = 'square';
+      cr.frequency.setValueAtTime(1300 + Math.random() * 500, audioCtx.currentTime);
+      cg.gain.setValueAtTime(0.020, audioCtx.currentTime);
+      cg.gain.exponentialRampToValueAtTime(0.0008, audioCtx.currentTime + 0.18);
+      cr.connect(cg); cg.connect(audioCtx.destination);
+      cr.start(); cr.stop(audioCtx.currentTime + 0.18);
+    }, 195);
+  },
+  milestone: () => {
+    [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => tone(f, 0.12, 'triangle', 0.06), i * 80));
+  },
 };
 
 
@@ -747,6 +852,7 @@ function consumeKey(k) {
 document.getElementById('startBtn').addEventListener('click', () => {
   initAudio();
   state.started = true;
+  state.stats.timeStart = state.time;
   document.getElementById('titleScreen').classList.remove('active');
 });
 document.getElementById('retryBtn').addEventListener('click', () => restart());
@@ -770,12 +876,13 @@ function loop(t) {
 
 function update(dt) {
   state.time += dt;
-  // Always tick decorative things even when paused (lamp flicker, particles)
+  // Always tick decorative things (lamp flicker, particle decay)
   updateParticles(dt);
-  state.flashT  = Math.max(0, state.flashT - dt);
-  state.shakeT  = Math.max(0, state.shakeT - dt);
+  state.flashT     = Math.max(0, state.flashT - dt);
+  state.shakeT     = Math.max(0, state.shakeT - dt);
+  state.edgePulseT = Math.max(0, state.edgePulseT - dt);
 
-  // Cops keep patrolling even while the title screen is up so it doesn't look frozen
+  // Cops keep patrolling even on the title screen so it doesn't look frozen
   if (!state.started) {
     for (const cop of state.cops) updateCop(cop, dt);
     for (const cp of state.cashPickups) cp.t += 0.05;
@@ -783,11 +890,27 @@ function update(dt) {
   }
   if (state.mode === 'gameOver' || state.mode === 'win') return;
 
+  // -- pause toggle --
+  if (consumeKey('p')) state.paused = !state.paused;
+  if (state.paused) return;
+
   // -- dealer menu pauses gameplay --
   if (state.mode === 'dealerMenu') {
     if (consumeKey('1')) attemptBuy(state.dealerMenu);
     if (consumeKey('Escape') || consumeKey('e')) closeDealerMenu();
     return;
+  }
+
+  // -- nearby dealer tracking (for speech bubbles) --
+  const nd = nearbyDealer();
+  if (nd) {
+    if (state.lastNearbyDealerId !== nd.id) {
+      state.lastNearbyDealerId = nd.id;
+      state.dealerLine = nd.lines[Math.floor(Math.random() * nd.lines.length)];
+    }
+  } else {
+    state.lastNearbyDealerId = null;
+    state.dealerLine = null;
   }
 
   // -- smoke trigger --
@@ -937,6 +1060,9 @@ function checkDetection() {
   for (const cop of state.cops) {
     if (!inVisionCone(cop, state.player.x, state.player.y, rangeMult)) continue;
 
+    // You're in someone's cone — flash the screen border red as a warning
+    state.edgePulseT = 0.4;
+
     if (state.player.smoking) { triggerBust('Caught mid-puff!'); return; }
 
     const dist = Math.hypot(cop.x - state.player.x, cop.y - state.player.y);
@@ -1002,6 +1128,7 @@ function attemptBuy(d) {
   }
   state.cash -= d.price;
   state.weed.push(d.vibes);
+  state.stats.gramsBought++;
   if (state.soundOn) SFX.buy();
   emitSparkle(d.x, d.y, '#8aff8a');
   addPopup('Nice nug!', state.player.x, state.player.y - 30, '#8aff8a', 1.4);
@@ -1017,6 +1144,7 @@ function collectCashPickups() {
     if (Math.hypot(cp.x - state.player.x, cp.y - state.player.y) < state.player.r + 7) {
       cp.collected = true;
       state.cash += cp.value;
+      state.stats.cashPicked += cp.value;
       if (state.soundOn) SFX.pickup();
       emitSparkle(cp.x, cp.y, '#5aff7a');
       addPopup(`+$${cp.value}!`, cp.x, cp.y - 12, '#5aff7a', 1.3);
@@ -1047,7 +1175,8 @@ function tryStartSmoking() {
   }
   state.player.smoking = true;
   state.player.smokeT = 0;
-  addPopup('Smoking...', state.player.x, state.player.y - 30, '#dddddd', 1.0);
+  if (state.soundOn) SFX.light();                       // *click click* whoosh
+  addPopup('Sparking up...', state.player.x, state.player.y - 30, '#ffaa50', 1.0);
 }
 
 function finishSmoking() {
@@ -1056,10 +1185,31 @@ function finishSmoking() {
   state.high = Math.min(100, state.high + HIGH_PER_PUFF);
   state.player.smoking = false;
   state.player.smokeT = 0;
+  state.stats.gramsSmoked++;
   if (state.soundOn) SFX.smoke();
   emitVibeStars(state.player.x, state.player.y);
   addPopup(`+${vibes} Vibes`, state.player.x, state.player.y - 30, '#faff5a', 1.6);
   if (state.high >= 80) addPopup('Whoaaaa...', state.player.x, state.player.y - 52, '#fa70ff', 1.4);
+  checkMilestones();
+}
+
+// Celebrates the first time you cross 25 / 50 / 75 vibes.
+function checkMilestones() {
+  const tiers = [
+    { v: 25, msg: 'BUZZED',           color: '#5affff' },
+    { v: 50, msg: 'HALFWAY BAKED',    color: '#5aff8a' },
+    { v: 75, msg: 'ALMOST THERE...',  color: '#faff5a' },
+  ];
+  for (const t of tiers) {
+    if (state.vibes >= t.v && !state.milestones[t.v]) {
+      state.milestones[t.v] = true;
+      addPopup(t.msg, state.player.x, state.player.y - 60, t.color, 2.5);
+      emitVibeStars(state.player.x, state.player.y - 8);
+      emitVibeStars(state.player.x - 20, state.player.y);
+      emitVibeStars(state.player.x + 20, state.player.y);
+      if (state.soundOn) SFX.milestone();
+    }
+  }
 }
 
 
@@ -1084,17 +1234,37 @@ function hideOverlays() {
   document.getElementById('gameOver').classList.remove('active');
   document.getElementById('winScreen').classList.remove('active');
 }
+function fmtTime(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+function fillEndStats(prefix) {
+  state.stats.timeEnd = state.time;
+  const elapsed = state.stats.timeEnd - state.stats.timeStart;
+  if (prefix === 'final') {
+    document.getElementById('finalVibes').textContent  = Math.floor(state.vibes);
+    document.getElementById('finalSmoked').textContent = state.stats.gramsSmoked;
+    document.getElementById('finalCash').textContent   = '$' + state.stats.cashPicked;
+    document.getElementById('finalTime').textContent   = fmtTime(elapsed);
+  } else {
+    document.getElementById('winSmoked').textContent = state.stats.gramsSmoked;
+    document.getElementById('winCash').textContent   = '$' + state.stats.cashPicked;
+    document.getElementById('winTime').textContent   = fmtTime(elapsed);
+  }
+}
 function triggerGameOver() {
   state.mode = 'gameOver';
-  document.getElementById('finalVibes').textContent = Math.floor(state.vibes);
+  fillEndStats('final');
   document.getElementById('gameOver').classList.add('active');
   if (state.soundOn) SFX.gameover();
 }
 function triggerWin() {
   state.mode = 'win';
+  fillEndStats('win');
   document.getElementById('winScreen').classList.add('active');
   if (state.soundOn) SFX.win();
-  // celebratory star shower from player position
+  // celebratory star shower
   for (let i = 0; i < 60; i++) {
     setTimeout(() => emitVibeStars(
       80 + Math.random() * (W - 160),
@@ -1107,6 +1277,7 @@ function restart() {
   initState();
   state.started = true;     // skip title on restart
   state.soundOn = sound;    // preserve user's sound preference
+  state.stats.timeStart = state.time;
 }
 
 
@@ -1156,16 +1327,41 @@ function render() {
 
   // UI elements that don't shake
   drawVignette();
-  drawMiniMap();
+  if (state.edgePulseT > 0) drawDangerEdge();
 
   if (state.mode === 'dealerMenu' && state.dealerMenu) drawDealerMenu();
 
-  if (state.mode === 'playing' && !state.player.smoking && state.started) {
+  if (state.mode === 'playing' && !state.player.smoking && state.started && !state.paused) {
     const d = nearbyDealer();
     if (d) drawPrompt(`Press E to talk to ${d.name}`);
     else if (currentHidingSpot() && state.weed.length > 0) drawPrompt(`Press S to smoke (${state.weed.length}g)`);
     else if (currentHidingSpot()) drawPrompt('Hiding spot — need weed to smoke');
   }
+
+  if (state.paused) drawPauseOverlay();
+}
+
+function drawDangerEdge() {
+  const a = state.edgePulseT / 0.4;
+  const pulse = (Math.sin(state.time * 12) + 1) / 2;
+  const thickness = 6 + pulse * 4;
+  ctx.fillStyle = `rgba(255, 60, 60, ${a * 0.55})`;
+  ctx.fillRect(0, 0, W, thickness);
+  ctx.fillRect(0, H - thickness, W, thickness);
+  ctx.fillRect(0, 0, thickness, H);
+  ctx.fillRect(W - thickness, 0, thickness, H);
+}
+
+function drawPauseOverlay() {
+  ctx.fillStyle = 'rgba(0,0,0,0.65)';
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#8aff8a';
+  ctx.font = 'bold 48px Courier New';
+  ctx.textAlign = 'center';
+  ctx.fillText('PAUSED', W / 2, H / 2);
+  ctx.fillStyle = '#fff';
+  ctx.font = '13px Courier New';
+  ctx.fillText('Press  P  to resume', W / 2, H / 2 + 30);
 }
 
 
@@ -1315,6 +1511,16 @@ function drawHome() {
 }
 
 function drawHidingSpot(s) {
+  // Pulsing green halo when the player is carrying weed and needs a spot
+  if (state.started && state.weed.length > 0 && !state.player.smoking) {
+    const pulse = (Math.sin(state.time * 4) + 1) / 2;
+    ctx.fillStyle = `rgba(138, 255, 138, ${0.06 + pulse * 0.16})`;
+    ctx.fillRect(s.x - 8, s.y - 8, s.w + 16, s.h + 16);
+    ctx.strokeStyle = `rgba(138, 255, 138, ${0.4 + pulse * 0.5})`;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(s.x - 4 + 0.5, s.y - 4 + 0.5, s.w + 7, s.h + 7);
+  }
+
   if (s.kind === 'alley') {
     // dark gap with a dumpster
     ctx.fillStyle = '#15151e';
@@ -1492,9 +1698,21 @@ function drawPlayer() {
   const p = state.player;
   const moving = !p.smoking && (Math.abs(p.vx) > 1 || Math.abs(p.vy) > 1);
   const step = moving ? (Math.floor(p.walkPhase) % 2) : 0;
-  const bob = moving ? Math.abs(Math.sin(p.walkPhase * Math.PI)) * 1.2 : 0;
+  const bodyBob = moving ? Math.abs(Math.sin(p.walkPhase * Math.PI)) * 1.2 : 0;
+
+  // ---- Bobblehead: the head bobs MORE than the body and wobbles side-to-side.
+  // When standing still, the head still gently wobbles (idle/breathing).
+  const headBobV = moving
+    ? Math.abs(Math.sin(p.walkPhase * Math.PI + 0.4)) * 2.2
+    : Math.sin(state.time * 1.6) * 0.7;
+  const headBobH = moving
+    ? Math.sin(p.walkPhase * 0.85) * 1.5
+    : Math.sin(state.time * 2.1) * 0.35;
+
   const x = p.x;
-  const y = p.y - bob;
+  const y = p.y - bodyBob;             // body anchor (current bob)
+  const hx = x + headBobH;             // head x (independent wobble)
+  const hy = y - headBobV;             // head y (extra bob on top of body bob)
   const blink = state.invuln > 0 && Math.floor(state.time * 12) % 2;
 
   // shadow
@@ -1516,11 +1734,8 @@ function drawPlayer() {
   const hoodieColor = blink ? '#aaffaa' : '#3e8a4a';
   ctx.fillStyle = hoodieColor;
   ctx.fillRect(x - 7, y - 4, 14, 10);
-  // pocket
   ctx.fillStyle = '#2e6a3a';
   ctx.fillRect(x - 5, y + 2, 10, 3);
-  // hoodie hood (back collar)
-  ctx.fillStyle = '#2e6a3a';
   ctx.fillRect(x - 7, y - 4, 14, 2);
 
   // arms swing
@@ -1533,53 +1748,77 @@ function drawPlayer() {
     ctx.fillRect(x + 6, y - 2, 3, 7);
   }
 
-  // head (skin)
+  // ---- HEAD (independent bob) ----
+  // tiny neck shadow under the chin sells the bobblehead bounce
+  ctx.fillStyle = 'rgba(0,0,0,0.30)';
+  ctx.fillRect(x - 3, y - 4, 6, 1);
+
+  // skin
   ctx.fillStyle = '#e0b090';
-  ctx.fillRect(x - 5, y - 12, 10, 8);
+  ctx.fillRect(hx - 5, hy - 12, 10, 8);
   // ears
-  ctx.fillRect(x - 6, y - 9, 1, 3);
-  ctx.fillRect(x + 5, y - 9, 1, 3);
+  ctx.fillRect(hx - 6, hy - 9, 1, 3);
+  ctx.fillRect(hx + 5, hy - 9, 1, 3);
 
   // beanie
   ctx.fillStyle = '#c84a4a';
-  ctx.fillRect(x - 6, y - 15, 12, 5);
+  ctx.fillRect(hx - 6, hy - 15, 12, 5);
   ctx.fillStyle = '#a83a3a';
-  ctx.fillRect(x - 6, y - 11, 12, 1);
+  ctx.fillRect(hx - 6, hy - 11, 12, 1);
   // beanie pom
   ctx.fillStyle = '#fff';
-  ctx.fillRect(x - 1, y - 17, 2, 2);
+  ctx.fillRect(hx - 1, hy - 17, 2, 2);
 
   // face
   if (p.facing === 'up') {
-    // hair from back
     ctx.fillStyle = '#3a2820';
-    ctx.fillRect(x - 5, y - 7, 10, 3);
+    ctx.fillRect(hx - 5, hy - 7, 10, 3);
   } else {
-    // eyes (red if high)
-    const eyeColor = state.high > 50 ? '#ff5050' : '#1a1a1a';
+    // ---- smooth eye-color gradient: dark @ high=0 → bright red @ high=100 ----
+    const t = Math.min(1, state.high / 100);
+    const r = Math.floor(26 + (255 - 26) * t);
+    const g = Math.floor(26 + (60  - 26) * (t * 0.35));
+    const b = Math.floor(26 + (70  - 26) * (t * 0.4));
+    const eyeColor = `rgb(${r},${g},${b})`;
+
+    let lex = hx - 3, rex = hx + 2;
+    if (p.facing === 'left')  { lex = hx - 4; rex = hx + 1; }
+    if (p.facing === 'right') { lex = hx - 3; rex = hx + 2; }
+
     ctx.fillStyle = eyeColor;
-    if (p.facing === 'left') {
-      ctx.fillRect(x - 4, y - 8, 1, 1);
-      ctx.fillRect(x + 1, y - 8, 1, 1);
-    } else if (p.facing === 'right') {
-      ctx.fillRect(x - 3, y - 8, 1, 1);
-      ctx.fillRect(x + 2, y - 8, 1, 1);
-    } else {
-      ctx.fillRect(x - 3, y - 8, 1, 1);
-      ctx.fillRect(x + 2, y - 8, 1, 1);
+    ctx.fillRect(lex, hy - 8, 1, 1);
+    ctx.fillRect(rex, hy - 8, 1, 1);
+
+    // dilated pupils when buzzed
+    if (state.high > 35) {
+      ctx.fillRect(lex, hy - 7, 1, 1);
+      ctx.fillRect(rex, hy - 7, 1, 1);
     }
-    // mouth (smile if very high)
+    // bloodshot streaks fading in
+    if (state.high > 55) {
+      ctx.fillStyle = `rgba(255,60,60,${Math.min(1, (state.high - 55) / 30)})`;
+      ctx.fillRect(lex - 1, hy - 8, 1, 1);
+      ctx.fillRect(rex + 1, hy - 8, 1, 1);
+    }
+    // burning red glow around eyes at peak
+    if (state.high > 80) {
+      const a = (state.high - 80) / 20 * 0.35;
+      ctx.fillStyle = `rgba(255,80,80,${a})`;
+      ctx.fillRect(hx - 6, hy - 9, 12, 3);
+    }
+
+    // mouth: small line normally, big smile when zooted
     ctx.fillStyle = '#5a3020';
     if (state.high > 70) {
-      ctx.fillRect(x - 2, y - 6, 4, 1);
-      ctx.fillRect(x - 3, y - 7, 1, 1);
-      ctx.fillRect(x + 2, y - 7, 1, 1);
+      ctx.fillRect(hx - 2, hy - 6, 4, 1);
+      ctx.fillRect(hx - 3, hy - 7, 1, 1);
+      ctx.fillRect(hx + 2, hy - 7, 1, 1);
     } else {
-      ctx.fillRect(x - 1, y - 6, 2, 1);
+      ctx.fillRect(hx - 1, hy - 6, 2, 1);
     }
   }
 
-  // joint when smoking
+  // joint while smoking — anchored to body so it doesn't fly off with the head
   if (p.smoking) {
     ctx.fillStyle = '#fff8d0';
     ctx.fillRect(x + 5, y - 6, 5, 1);
@@ -1668,9 +1907,9 @@ function drawDealer(d) {
   ctx.fillStyle = 'rgba(0,0,0,0.4)';
   ctx.beginPath(); ctx.ellipse(x, y + 11, 11, 3, 0, 0, Math.PI * 2); ctx.fill();
 
-  if (d.id === 1) drawSketchy(x, y);
-  else if (d.id === 2) drawRon(x, y);
-  else if (d.id === 3) drawPete(x, y);
+  if (d.id === 1) drawTrump(x, y);
+  else if (d.id === 2) drawElon(x, y);
+  else if (d.id === 3) drawSnoop(x, y);
 
   // labels
   ctx.fillStyle = '#fff';
@@ -1681,7 +1920,7 @@ function drawDealer(d) {
   ctx.font = '8px Courier New';
   ctx.fillText(d.label, x, y + 36);
 
-  // interaction prompt ring
+  // interaction prompt ring + character speech bubble
   if (inRange && state.mode === 'playing') {
     const r = 22 + Math.sin(state.time * 6) * 2;
     ctx.strokeStyle = '#8aff8a';
@@ -1689,116 +1928,220 @@ function drawDealer(d) {
     ctx.setLineDash([4, 4]);
     ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
     ctx.setLineDash([]);
+    if (state.dealerLine) drawSpeechBubble(state.dealerLine, x, y - 20);
   }
 }
-function drawSketchy(x, y) {
-  // dark hoodie up; barely any face visible
+
+// Comic-style speech bubble with a tail pointing down at the speaker.
+// The bubble itself is clamped on-screen, but the tail still points at (x).
+function drawSpeechBubble(text, x, y) {
+  ctx.font = 'bold 10px Courier New';
+  ctx.textAlign = 'center';
+  const tw = ctx.measureText(text).width;
+  const bw = Math.min(240, tw + 16);
+  const bh = 20;
+  const bx = Math.max(4, Math.min(W - bw - 4, x - bw / 2));
+  const by = y - bh - 6;
+  const tailX = Math.max(bx + 8, Math.min(bx + bw - 8, x));
+
+  // bubble body
+  ctx.fillStyle = 'rgba(250,250,255,0.96)';
+  ctx.fillRect(bx, by, bw, bh);
+  ctx.strokeStyle = '#0a0a0a';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+
+  // tail (overlapping the bubble's bottom edge so it looks contiguous)
+  ctx.fillStyle = 'rgba(250,250,255,0.96)';
+  ctx.beginPath();
+  ctx.moveTo(tailX - 5, by + bh - 1);
+  ctx.lineTo(x,         y - 3);
+  ctx.lineTo(tailX + 5, by + bh - 1);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(tailX - 5, by + bh);
+  ctx.lineTo(x,         y - 3);
+  ctx.lineTo(tailX + 5, by + bh);
+  ctx.stroke();
+
+  // text centered in the clamped bubble
   ctx.fillStyle = '#1a1a1a';
-  ctx.fillRect(x - 5, y + 4, 4, 7);
-  ctx.fillRect(x + 1, y + 4, 4, 7);
-  ctx.fillStyle = '#000';
+  ctx.fillText(text, bx + bw / 2, by + 13);
+}
+// Tiny head wobble shared by all dealers so they don't look static
+function dealerBob() { return Math.sin(state.time * 1.4) * 0.6; }
+
+function drawTrump(x, y) {
+  const hb = dealerBob();
+  // shoes
+  ctx.fillStyle = '#0a0a0a';
   ctx.fillRect(x - 5, y + 10, 4, 2);
   ctx.fillRect(x + 1, y + 10, 4, 2);
-  // hoodie body
-  ctx.fillStyle = '#5a5a5a';
+  // navy slacks
+  ctx.fillStyle = '#1a2348';
+  ctx.fillRect(x - 5, y + 4, 4, 7);
+  ctx.fillRect(x + 1, y + 4, 4, 7);
+  // suit jacket
+  ctx.fillStyle = '#1a2a4a';
   ctx.fillRect(x - 7, y - 4, 14, 10);
-  ctx.fillStyle = '#3a3a3a';
-  ctx.fillRect(x - 5, y + 2, 10, 3);
-  // hood (covering head)
-  ctx.fillStyle = '#5a5a5a';
-  ctx.fillRect(x - 7, y - 14, 14, 12);
-  ctx.fillStyle = '#3a3a3a';
-  ctx.fillRect(x - 7, y - 14, 14, 2);
-  // face shadow
-  ctx.fillStyle = '#2a2218';
-  ctx.fillRect(x - 4, y - 8, 8, 4);
-  // sunglasses
-  ctx.fillStyle = '#000';
-  ctx.fillRect(x - 4, y - 7, 8, 2);
-  // arms
-  ctx.fillStyle = '#5a5a5a';
+  // lapels (slightly darker)
+  ctx.fillStyle = '#10183a';
+  ctx.fillRect(x - 5, y - 4, 1, 6);
+  ctx.fillRect(x + 4, y - 4, 1, 6);
+  // white shirt collar
+  ctx.fillStyle = '#fafafa';
+  ctx.fillRect(x - 2, y - 4, 4, 2);
+  // long red tie (signature)
+  ctx.fillStyle = '#c83030';
+  ctx.fillRect(x - 1, y - 2, 2, 9);
+  ctx.fillStyle = '#a01a1a';
+  ctx.fillRect(x - 1, y + 6, 2, 1);
+  // arms (suit)
+  ctx.fillStyle = '#1a2a4a';
   ctx.fillRect(x - 9, y - 2, 3, 7);
   ctx.fillRect(x + 6, y - 2, 3, 7);
+  // small hands (a little joke)
+  ctx.fillStyle = '#e0a070';
+  ctx.fillRect(x - 9, y + 4, 3, 2);
+  ctx.fillRect(x + 6, y + 4, 3, 2);
+  // head — orange-tinted skin
+  ctx.fillStyle = '#e6a878';
+  ctx.fillRect(x - 5, y - 12 + hb, 10, 8);
+  // tan-line cheeks (subtle)
+  ctx.fillStyle = '#d49060';
+  ctx.fillRect(x - 5, y - 5 + hb, 10, 1);
+  // signature swoopy yellow comb-over
+  ctx.fillStyle = '#e8d050';
+  ctx.fillRect(x - 6, y - 15 + hb, 12, 3);
+  ctx.fillRect(x - 7, y - 13 + hb, 13, 2);
+  ctx.fillRect(x + 5, y - 12 + hb, 3, 2);   // right swoop
+  ctx.fillStyle = '#f4e088';
+  ctx.fillRect(x - 4, y - 14 + hb, 7, 1);   // highlight strand
+  // squinty eyes
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(x - 3, y - 8 + hb, 2, 1);
+  ctx.fillRect(x + 1, y - 8 + hb, 2, 1);
+  // pursed small mouth
+  ctx.fillStyle = '#8a3a3a';
+  ctx.fillRect(x - 1, y - 5 + hb, 3, 1);
 }
-function drawRon(x, y) {
-  // brown pants
-  ctx.fillStyle = '#3a2818';
-  ctx.fillRect(x - 5, y + 4, 4, 7);
-  ctx.fillRect(x + 1, y + 4, 4, 7);
-  ctx.fillStyle = '#1a0e08';
+
+function drawElon(x, y) {
+  const hb = dealerBob();
+  // shoes
+  ctx.fillStyle = '#0a0a0a';
   ctx.fillRect(x - 5, y + 10, 4, 2);
   ctx.fillRect(x + 1, y + 10, 4, 2);
-  // jacket body
-  ctx.fillStyle = '#7a4a2a';
+  // dark jeans
+  ctx.fillStyle = '#212a44';
+  ctx.fillRect(x - 5, y + 4, 4, 7);
+  ctx.fillRect(x + 1, y + 4, 4, 7);
+  // black t-shirt
+  ctx.fillStyle = '#1a1a1a';
   ctx.fillRect(x - 7, y - 4, 14, 10);
+  // rocket logo (red flame + white body)
+  ctx.fillStyle = '#fafafa';
+  ctx.fillRect(x - 1, y - 2, 2, 4);
+  ctx.fillRect(x - 2, y - 1, 4, 1);
+  ctx.fillStyle = '#ff4040';
+  ctx.fillRect(x - 1, y + 2, 2, 2);
+  // bare arms (short-sleeve)
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(x - 9, y - 2, 3, 3);
+  ctx.fillRect(x + 6, y - 2, 3, 3);
+  ctx.fillStyle = '#e6c8a8';
+  ctx.fillRect(x - 9, y + 1, 3, 5);
+  ctx.fillRect(x + 6, y + 1, 3, 5);
+  // head — pale-ish skin
+  ctx.fillStyle = '#ead0b0';
+  ctx.fillRect(x - 5, y - 12 + hb, 10, 8);
+  // short brown hair with a hint of receding hairline
   ctx.fillStyle = '#5a3a1a';
-  ctx.fillRect(x - 7, y - 4, 14, 2);
-  ctx.fillRect(x - 1, y - 4, 2, 10);
-  // arms
-  ctx.fillStyle = '#7a4a2a';
-  ctx.fillRect(x - 9, y - 2, 3, 7);
-  ctx.fillRect(x + 6, y - 2, 3, 7);
-  // head
-  ctx.fillStyle = '#d0a880';
-  ctx.fillRect(x - 5, y - 12, 10, 8);
-  // orange beanie
-  ctx.fillStyle = '#e07a30';
-  ctx.fillRect(x - 6, y - 15, 12, 5);
-  ctx.fillStyle = '#b85a1a';
-  ctx.fillRect(x - 6, y - 11, 12, 1);
-  // mustache
-  ctx.fillStyle = '#3a2818';
-  ctx.fillRect(x - 3, y - 6, 6, 1);
+  ctx.fillRect(x - 5, y - 14 + hb, 10, 2);
+  ctx.fillRect(x - 5, y - 12 + hb, 2, 1);   // left tuft
+  ctx.fillRect(x + 3, y - 12 + hb, 2, 1);   // right tuft
+  // tiny skin highlight on top (forehead)
+  ctx.fillStyle = '#f0d8b8';
+  ctx.fillRect(x - 2, y - 13 + hb, 4, 1);
   // eyes
-  ctx.fillStyle = '#000';
-  ctx.fillRect(x - 3, y - 8, 1, 1);
-  ctx.fillRect(x + 2, y - 8, 1, 1);
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(x - 3, y - 8 + hb, 1, 1);
+  ctx.fillRect(x + 2, y - 8 + hb, 1, 1);
+  // smirk (asymmetric)
+  ctx.fillStyle = '#5a3020';
+  ctx.fillRect(x - 1, y - 5 + hb, 3, 1);
+  ctx.fillRect(x + 2, y - 6 + hb, 1, 1);
 }
-function drawPete(x, y) {
-  // jeans
-  ctx.fillStyle = '#2a3a6a';
-  ctx.fillRect(x - 5, y + 4, 4, 7);
-  ctx.fillRect(x + 1, y + 4, 4, 7);
-  ctx.fillStyle = '#101a30';
+
+function drawSnoop(x, y) {
+  const hb = dealerBob();
+  // white sneakers
+  ctx.fillStyle = '#f0f0f0';
   ctx.fillRect(x - 5, y + 10, 4, 2);
   ctx.fillRect(x + 1, y + 10, 4, 2);
-  // tie-dye shirt: rainbow bands
-  ctx.fillStyle = '#a85aff';
+  ctx.fillStyle = '#a8a8a8';
+  ctx.fillRect(x - 5, y + 11, 4, 1);
+  ctx.fillRect(x + 1, y + 11, 4, 1);
+  // dark blue jeans
+  ctx.fillStyle = '#1a2858';
+  ctx.fillRect(x - 5, y + 4, 4, 7);
+  ctx.fillRect(x + 1, y + 4, 4, 7);
+  // blue jersey
+  ctx.fillStyle = '#2050b0';
   ctx.fillRect(x - 7, y - 4, 14, 10);
-  ctx.fillStyle = '#6a3acc';
-  ctx.fillRect(x - 7, y - 4, 14, 2);
-  ctx.fillStyle = '#ff7aff';
-  ctx.fillRect(x - 7, y - 2, 14, 1);
-  ctx.fillStyle = '#5affc4';
-  ctx.fillRect(x - 7, y + 0, 14, 1);
-  ctx.fillStyle = '#ffeb44';
-  ctx.fillRect(x - 7, y + 2, 14, 1);
-  // peace necklace
+  ctx.fillStyle = '#173f8e';
+  ctx.fillRect(x - 7, y + 5, 14, 1);
+  // gold chain
   ctx.fillStyle = '#ffd700';
-  ctx.fillRect(x - 1, y - 4, 2, 2);
-  // arms
-  ctx.fillStyle = '#a85aff';
+  ctx.fillRect(x - 3, y - 3, 6, 1);
+  ctx.fillRect(x - 1, y - 2, 2, 2);
+  // jersey letter "D"
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 7px Courier New';
+  ctx.textAlign = 'center';
+  ctx.fillText('D', x, y + 4);
+  // arms (brown skin)
+  ctx.fillStyle = '#6a4830';
   ctx.fillRect(x - 9, y - 2, 3, 7);
   ctx.fillRect(x + 6, y - 2, 3, 7);
-  // head
-  ctx.fillStyle = '#e0b090';
-  ctx.fillRect(x - 5, y - 12, 10, 8);
-  // dreadlocks (chunks around head)
-  ctx.fillStyle = '#3a2818';
-  ctx.fillRect(x - 7, y - 13, 2, 8);
-  ctx.fillRect(x - 5, y - 15, 10, 4);
-  ctx.fillRect(x + 5, y - 13, 2, 8);
-  ctx.fillRect(x - 5, y - 4, 2, 4);
-  ctx.fillRect(x + 3, y - 4, 2, 4);
+  // head — brown skin
+  ctx.fillStyle = '#6a4830';
+  ctx.fillRect(x - 5, y - 12 + hb, 10, 8);
+  // long side dreadlocks (hang past shoulders)
+  ctx.fillStyle = '#1a1208';
+  ctx.fillRect(x - 7, y - 10 + hb, 2, 14);
+  ctx.fillRect(x + 5, y - 10 + hb, 2, 14);
+  // dreadlock segment shading
+  ctx.fillStyle = '#3a2a18';
+  ctx.fillRect(x - 7, y - 7 + hb, 2, 1);
+  ctx.fillRect(x - 7, y - 3 + hb, 2, 1);
+  ctx.fillRect(x - 7, y + 1 + hb, 2, 1);
+  ctx.fillRect(x + 5, y - 7 + hb, 2, 1);
+  ctx.fillRect(x + 5, y - 3 + hb, 2, 1);
+  ctx.fillRect(x + 5, y + 1 + hb, 2, 1);
+  // purple/blue beanie on top
+  ctx.fillStyle = '#3a2078';
+  ctx.fillRect(x - 6, y - 15 + hb, 12, 4);
+  ctx.fillStyle = '#2a1058';
+  ctx.fillRect(x - 6, y - 12 + hb, 12, 1);
+  // beanie stripe (Crip-style blue, harmless flair)
+  ctx.fillStyle = '#1090e0';
+  ctx.fillRect(x - 6, y - 14 + hb, 12, 1);
   // round sunglasses
-  ctx.fillStyle = '#000';
-  ctx.fillRect(x - 4, y - 8, 3, 2);
-  ctx.fillRect(x + 1, y - 8, 3, 2);
-  ctx.fillStyle = '#7a3aff';
-  ctx.fillRect(x - 1, y - 7, 2, 1);
-  // smile
-  ctx.fillStyle = '#5a3020';
-  ctx.fillRect(x - 2, y - 6, 4, 1);
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(x - 4, y - 9 + hb, 3, 2);
+  ctx.fillRect(x + 1, y - 9 + hb, 3, 2);
+  ctx.fillStyle = '#5a5a5a';   // bridge
+  ctx.fillRect(x - 1, y - 8 + hb, 2, 1);
+  // chill smile
+  ctx.fillStyle = '#3a2010';
+  ctx.fillRect(x - 2, y - 5 + hb, 4, 1);
+  // tiny joint in his hand (he is Snoop)
+  ctx.fillStyle = '#fff8d0';
+  ctx.fillRect(x + 9, y + 1, 4, 1);
+  ctx.fillStyle = '#ff8030';
+  ctx.fillRect(x + 13, y + 1, 1, 1);
 }
 
 
@@ -1849,53 +2192,102 @@ function drawPrompt(text) {
 
 function drawDealerMenu() {
   const d = state.dealerMenu;
-  const mw = 360, mh = 180;
+  const mw = 440, mh = 240;
   const mx = W / 2 - mw / 2, my = H / 2 - mh / 2;
-  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+
+  // dim backdrop
+  ctx.fillStyle = 'rgba(0,0,0,0.65)';
   ctx.fillRect(0, 0, W, H);
+
+  // card
   ctx.fillStyle = '#0a0e1a';
   ctx.fillRect(mx, my, mw, mh);
   ctx.strokeStyle = '#8aff8a';
   ctx.lineWidth = 2;
   ctx.strokeRect(mx + 0.5, my + 0.5, mw - 1, mh - 1);
+  // corner accents
+  ctx.strokeStyle = '#faff5a';
+  ctx.lineWidth = 2;
+  const corners = [[mx, my, 1, 1], [mx + mw, my, -1, 1], [mx, my + mh, 1, -1], [mx + mw, my + mh, -1, -1]];
+  for (const [cx, cy, dx, dy] of corners) {
+    ctx.beginPath();
+    ctx.moveTo(cx, cy + 8 * dy);
+    ctx.lineTo(cx, cy);
+    ctx.lineTo(cx + 8 * dx, cy);
+    ctx.stroke();
+  }
+
   // header strip
   ctx.fillStyle = '#11142a';
-  ctx.fillRect(mx, my, mw, 36);
+  ctx.fillRect(mx, my, mw, 42);
   ctx.fillStyle = '#8aff8a';
-  ctx.fillRect(mx, my + 36, mw, 2);
-
-  // portrait
-  const portraitX = mx + 24, portraitY = my + 28;
-  ctx.fillStyle = d.color;
-  ctx.fillRect(portraitX - 12, portraitY - 14, 24, 28);
-  ctx.fillStyle = '#000';
-  ctx.fillRect(portraitX - 12, portraitY - 14, 24, 2);
-  ctx.fillStyle = d.accent;
-  ctx.fillRect(portraitX - 12, portraitY + 12, 24, 2);
-
+  ctx.fillRect(mx, my + 42, mw, 2);
   ctx.fillStyle = '#8aff8a';
-  ctx.font = 'bold 16px Courier New';
+  ctx.font = 'bold 18px Courier New';
+  ctx.textAlign = 'center';
+  ctx.fillText(d.name.toUpperCase(), mx + mw / 2, my + 28);
+
+  // ---- portrait box (left) ----
+  const pbX = mx + 24, pbY = my + 60;
+  const pbW = 110, pbH = 156;
+  ctx.fillStyle = '#1a1a2a';
+  ctx.fillRect(pbX, pbY, pbW, pbH);
+  ctx.strokeStyle = d.color;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(pbX + 0.5, pbY + 0.5, pbW - 1, pbH - 1);
+  // decorative scanlines inside
+  ctx.fillStyle = 'rgba(255,255,255,0.04)';
+  for (let yy = pbY + 2; yy < pbY + pbH; yy += 3) ctx.fillRect(pbX + 1, yy, pbW - 2, 1);
+
+  // draw character scaled up inside the box
+  const px = pbX + pbW / 2;
+  const py = pbY + pbH - 32;
+  ctx.save();
+  ctx.translate(px, py);
+  ctx.scale(2.6, 2.6);
+  ctx.translate(-px, -py);
+  if (d.id === 1) drawTrump(px, py);
+  else if (d.id === 2) drawElon(px, py);
+  else if (d.id === 3) drawSnoop(px, py);
+  ctx.restore();
+
+  // ---- info pane (right) ----
+  const rx = pbX + pbW + 28;
+  let ry = my + 70;
   ctx.textAlign = 'left';
-  ctx.fillText(d.name, mx + 56, my + 22);
+
   ctx.fillStyle = '#bbc';
   ctx.font = '11px Courier New';
-  ctx.fillText(d.label, mx + 56, my + 34);
+  ctx.fillText(d.label.toUpperCase(), rx, ry);  ry += 22;
 
-  // body lines
+  // big quote
+  if (state.dealerLine) {
+    ctx.fillStyle = '#faff5a';
+    ctx.font = 'italic 12px Courier New';
+    ctx.fillText('"' + state.dealerLine + '"', rx, ry);
+    ry += 22;
+  }
+
   ctx.fillStyle = '#fff';
   ctx.font = '13px Courier New';
-  ctx.textAlign = 'center';
-  ctx.fillText(`You have: $${state.cash}`, W / 2, my + 70);
-  ctx.fillStyle = state.cash >= d.price ? '#8aff8a' : '#777';
-  ctx.fillText(`[1]  Buy 1g for $${d.price}  →  +${d.vibes} vibes`, W / 2, my + 102);
+  ctx.fillText(`Your cash:   $${state.cash}`, rx, ry);  ry += 18;
+  ctx.fillText(`Inventory:   ${state.weed.length}g`, rx, ry);  ry += 22;
+
   if (d.sketchy) {
     ctx.fillStyle = '#ff8060';
     ctx.font = '10px Courier New';
-    ctx.fillText('* he keeps looking around', W / 2, my + 122);
+    ctx.fillText('!  He keeps looking around...', rx, ry);
+    ry += 16;
   }
+
+  // action lines (bottom)
+  ctx.fillStyle = state.cash >= d.price ? '#8aff8a' : '#666';
+  ctx.font = 'bold 13px Courier New';
+  ctx.fillText(`[1]  Buy 1g  $${d.price}  →  +${d.vibes} vibes`, rx, my + mh - 38);
+
   ctx.fillStyle = '#aaa';
   ctx.font = '11px Courier New';
-  ctx.fillText('[ Esc / E ]   Leave', W / 2, my + 152);
+  ctx.fillText('[Esc / E]  Walk away', rx, my + mh - 18);
 }
 
 
@@ -1906,70 +2298,6 @@ function drawVignette() {
   g.addColorStop(1, 'rgba(0,0,0,0.5)');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, W, H);
-}
-
-
-/* ---------- mini-map ---------- */
-function drawMiniMap() {
-  const mw = 110, mh = 74;
-  const mx = W - mw - 6, my = 6;
-  const sx = mw / W, sy = mh / H;
-
-  ctx.fillStyle = 'rgba(10,14,26,0.85)';
-  ctx.fillRect(mx, my, mw, mh);
-  ctx.strokeStyle = '#4a4';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(mx + 0.5, my + 0.5, mw - 1, mh - 1);
-
-  // buildings
-  ctx.fillStyle = '#555';
-  for (const b of BUILDINGS) {
-    ctx.fillRect(mx + b.x * sx, my + b.y * sy, Math.max(1, b.w * sx), Math.max(1, b.h * sy));
-  }
-  // home
-  ctx.fillStyle = '#5aff8a';
-  ctx.fillRect(mx + HOME.x * sx, my + HOME.y * sy, Math.max(2, HOME.w * sx), Math.max(2, HOME.h * sy));
-  // hiding spots
-  ctx.fillStyle = '#7a7adf';
-  for (const s of HIDING_SPOTS) {
-    ctx.fillRect(mx + s.x * sx, my + s.y * sy, Math.max(2, s.w * sx), Math.max(2, s.h * sy));
-  }
-  // cash
-  ctx.fillStyle = '#5aff7a';
-  for (const cp of state.cashPickups) if (!cp.collected) {
-    ctx.beginPath(); ctx.arc(mx + cp.x * sx, my + cp.y * sy, 1.5, 0, Math.PI * 2); ctx.fill();
-  }
-  // dealers
-  for (const d of DEALER_DEFS) {
-    ctx.fillStyle = d.color;
-    ctx.beginPath(); ctx.arc(mx + d.x * sx, my + d.y * sy, 2, 0, Math.PI * 2); ctx.fill();
-  }
-  // cops
-  for (const cop of state.cops) {
-    const cx = mx + cop.x * sx, cy = my + cop.y * sy;
-    ctx.fillStyle = cop.alertT > 0 ? '#ff5070' : '#5a8aff';
-    ctx.beginPath(); ctx.arc(cx, cy, 2, 0, Math.PI * 2); ctx.fill();
-    // facing tick
-    ctx.strokeStyle = ctx.fillStyle;
-    ctx.beginPath();
-    ctx.moveTo(cx, cy);
-    ctx.lineTo(cx + Math.cos(cop.facing) * 4, cy + Math.sin(cop.facing) * 4);
-    ctx.stroke();
-  }
-  // player (blinking)
-  if (Math.floor(state.time * 4) % 2 === 0) {
-    ctx.fillStyle = '#fff';
-    ctx.beginPath(); ctx.arc(mx + state.player.x * sx, my + state.player.y * sy, 2.5, 0, Math.PI * 2); ctx.fill();
-  } else {
-    ctx.fillStyle = '#faff5a';
-    ctx.beginPath(); ctx.arc(mx + state.player.x * sx, my + state.player.y * sy, 2.5, 0, Math.PI * 2); ctx.fill();
-  }
-
-  // label
-  ctx.fillStyle = '#8aff8a';
-  ctx.font = 'bold 7px Courier New';
-  ctx.textAlign = 'left';
-  ctx.fillText('MAP', mx + 4, my + 9);
 }
 
 
